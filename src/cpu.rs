@@ -1,3 +1,5 @@
+use crate::opcodes::OPCODES_MAP;
+
 pub struct CPU {
     pub register_a: u8,
     pub register_x: u8,
@@ -115,35 +117,27 @@ impl CPU {
         loop {
             let code = self.mem_read(self.program_counter);
             self.program_counter += 1;
+            let opcode = OPCODES_MAP
+                .get(&code)
+                .expect(&format!("OpCode {:x} is not recognized", code));
 
             match code {
-                0xA9 => {
-                    self.lda(&AddressingMode::Immediate);
-                    self.program_counter += 1;
-                }
-                0xA5 => {
-                    self.lda(&AddressingMode::ZeroPage);
-                    self.program_counter += 1;
-                }
-                0xAD => {
-                    self.lda(&AddressingMode::Absolute);
-                    self.program_counter += 2;
+                /* LDA */
+                0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
+                    self.lda(&opcode.mode);
                 }
                 0xAA => self.tax(),
                 0xE8 => self.inx(),
-                0x85 => {
+                /* STA */
+                0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
                     self.sta(&AddressingMode::ZeroPage);
-                    self.program_counter += 1;
-                }
-                0x95 => {
-                    self.sta(&AddressingMode::ZeroPage_X);
-                    self.program_counter += 1;
                 }
                 0x00 => return,
                 _ => {
                     todo!()
                 }
             }
+            self.program_counter += (opcode.len - 1) as u16;
         }
     }
 
