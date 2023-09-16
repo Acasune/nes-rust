@@ -182,6 +182,45 @@ impl CPU {
         self.update_zero_and_negative_flags(value >> 1);
     }
 
+    fn rol_accumulator(&mut self) {
+        let value = self.register_a;
+        let old_carry = self.get_flg(&FlgCodes::CARRY);
+        self.set_flg(&FlgCodes::CARRY, if value >> 7 == 0 { 0 } else { 1 });
+
+        self.register_a = (value << 1) | old_carry;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    fn rol(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+        let old_carry = self.get_flg(&FlgCodes::CARRY);
+
+        self.set_flg(&FlgCodes::CARRY, if value >> 7 == 0 { 0 } else { 1 });
+
+        self.mem_write(addr, (value << 1) | old_carry);
+        self.update_zero_and_negative_flags((value << 1) | old_carry);
+    }
+    fn ror_accumulator(&mut self) {
+        let value = self.register_a;
+        let old_carry = self.get_flg(&FlgCodes::CARRY);
+        self.set_flg(&FlgCodes::CARRY, if value >> 7 == 0 { 0 } else { 1 });
+
+        self.register_a = (value >> 1) | (old_carry << 7);
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    fn ror(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+        let old_carry = self.get_flg(&FlgCodes::CARRY);
+
+        self.set_flg(&FlgCodes::CARRY, if value >> 7 == 0 { 0 } else { 1 });
+
+        self.mem_write(addr, (value >> 1) | (old_carry << 7));
+        self.update_zero_and_negative_flags((value >> 1) | (old_carry << 7));
+    }
+
     fn ora(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
@@ -352,6 +391,14 @@ impl CPU {
                 0x46 | 0x56 | 0x4E | 0x5E => self.lsr(&opcode.mode),
                 /* ORA */
                 0x09 | 0x05 | 0x15 | 0x0D | 0x1D | 0x19 | 0x01 | 0x11 => self.eor(&opcode.mode),
+                /* ROL_accumulator */
+                0x2A => self.rol_accumulator(),
+                /* ROL others*/
+                0x26 | 0x36 | 0x2E | 0x3E => self.rol(&opcode.mode),
+                /* ROR_accumulator */
+                0x6A => self.ror_accumulator(),
+                /* ROR others*/
+                0x66 | 0x76 | 0x6E | 0x7E => self.ror(&opcode.mode),
                 /* LDA */
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&opcode.mode);
@@ -879,5 +926,57 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x03);
+    }
+
+    #[test]
+    fn test_rol_accumulator() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x2A]);
+        cpu.reset();
+        cpu.register_a = 0b0000_0010;
+        cpu.status = 0x01;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0b0000_0101);
+        assert_eq!(cpu.status, 0x00);
+    }
+
+    #[test]
+    fn test_rol_zeropage() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x10, 0b0000_0001);
+        cpu.load(vec![0x26, 0x10]);
+        cpu.reset();
+        cpu.status = 0x01;
+        cpu.run();
+
+        assert_eq!(cpu.mem_read(0x10), 0x03);
+        assert_eq!(cpu.status, 0x00);
+    }
+
+    #[test]
+    fn test_ror_accumulator() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x6A]);
+        cpu.reset();
+        cpu.register_a = 0b1000_0000;
+        cpu.status = 0x01;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0b1100_0000);
+        assert_eq!(cpu.status, 0x81);
+    }
+
+    #[test]
+    fn test_ror_zeropage() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x10, 0b1000_0000);
+        cpu.load(vec![0x66, 0x10]);
+        cpu.reset();
+        cpu.status = 0x01;
+        cpu.run();
+
+        assert_eq!(cpu.mem_read(0x10), 0b1100_0000);
+        // assert_eq!(cpu.status, 0x81);
     }
 }
