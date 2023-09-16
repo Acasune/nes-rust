@@ -182,6 +182,16 @@ impl CPU {
         self.update_zero_and_negative_flags(value >> 1);
     }
 
+    fn ora(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        let result = self.register_a | value;
+
+        self.register_a = result;
+        self.update_zero_and_negative_flags(result);
+    }
+
     fn lda(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
@@ -330,16 +340,18 @@ impl CPU {
                 0x88 => self.dey(&opcode.mode),
                 /* EOR */
                 0x49 | 0x45 | 0x55 | 0x4D | 0x5D | 0x59 | 0x41 | 0x51 => self.eor(&opcode.mode),
-                /* LSR_accumulator */
-                0x4A => self.lsr_accumulator(),
-                /* LSR others*/
-                0x46 | 0x56 | 0x4E | 0x5E => self.lsr(&opcode.mode),
                 /* INC */
                 0xE6 | 0xF6 | 0xEE | 0xFE => self.inc(&opcode.mode),
                 /* INX */
                 0xE8 => self.inx(),
                 /* INY */
                 0xC8 => self.iny(),
+                /* LSR_accumulator */
+                0x4A => self.lsr_accumulator(),
+                /* LSR others*/
+                0x46 | 0x56 | 0x4E | 0x5E => self.lsr(&opcode.mode),
+                /* ORA */
+                0x09 | 0x05 | 0x15 | 0x0D | 0x1D | 0x19 | 0x01 | 0x11 => self.eor(&opcode.mode),
                 /* LDA */
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&opcode.mode);
@@ -856,5 +868,16 @@ mod test {
 
         assert_eq!(cpu.mem_read(0x10), 0x01);
         assert_eq!(cpu.status, 0x00);
+    }
+    #[test]
+    fn test_ora() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x09, 0x02]);
+        cpu.reset();
+        cpu.status = 0x00;
+        cpu.register_a = 0x01;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x03);
     }
 }
