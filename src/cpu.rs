@@ -54,7 +54,7 @@ impl CPU {
         let sum = self.register_a as u16 + value as u16 + self.get_flg(&FlgCodes::CARRY) as u16;
         self.set_flg(&FlgCodes::CARRY, if sum > 0xFF { 1 } else { 0 });
 
-        let result = (sum & 0xFF) as u8;
+        let result = (sum % 256) as u8;
         self.set_flg(
             &FlgCodes::OVERFLOW,
             if ((value & 0x80) == (self.register_a & 0x80)) & (result & 0x80 != value & 0x80) {
@@ -229,7 +229,7 @@ impl CPU {
         let sum = self.register_a as u16 + value as u16 + self.get_flg(&FlgCodes::CARRY) as u16;
         self.set_flg(&FlgCodes::CARRY, if sum > 0xFF { 1 } else { 0 });
 
-        let result = (sum % 255) as u8;
+        let result = (sum % 256) as u8;
         self.set_flg(
             &FlgCodes::OVERFLOW,
             if ((value & 0x80) == (self.register_a & 0x80)) & (result & 0x80 != value & 0x80) {
@@ -412,7 +412,7 @@ impl CPU {
                 /* LSR others*/
                 0x46 | 0x56 | 0x4E | 0x5E => self.lsr(&opcode.mode),
                 /* ORA */
-                0x09 | 0x05 | 0x15 | 0x0D | 0x1D | 0x19 | 0x01 | 0x11 => self.eor(&opcode.mode),
+                0x09 | 0x05 | 0x15 | 0x0D | 0x1D | 0x19 | 0x01 | 0x11 => self.ora(&opcode.mode),
                 /* ROL_accumulator */
                 0x2A => self.rol_accumulator(),
                 /* ROL others*/
@@ -1041,7 +1041,7 @@ mod test {
         cpu.status = 0x00;
         cpu.run();
 
-        assert_eq!(cpu.register_a, 0x20);
+        assert_eq!(cpu.register_a, 0x1F);
         assert_eq!(cpu.status, 0b0000_0001);
     }
 
@@ -1069,5 +1069,4 @@ mod test {
         assert_eq!(cpu.register_a, 0xa0);
         assert_eq!(cpu.status, 0b1100_0000);
     }
-
 }
