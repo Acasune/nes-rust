@@ -309,6 +309,10 @@ impl CPU {
             REGISTER::REGISTER_Y => self.mem_write(addr, self.register_y),
         }
     }
+    fn stack_push(&mut self, data: u8) {
+        self.mem_write((STACK as u16) + self.stack_pointer as u16, data);
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1)
+    }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
         if result == 0 {
@@ -502,6 +506,12 @@ impl CPU {
                 0xE9 | 0xE5 | 0xF5 | 0xED | 0xFD | 0xF9 | 0xE1 | 0xF1 => {
                     self.sbc(&opcode.mode);
                 }
+                /* Stack Instructions */
+                /* PHA */
+                0x48 => self.stack_push(self.register_a),
+                /* PHP */
+                0x08 => self.stack_push(self.status),
+                /* The Other Instructions */
                 0x00 => return,
                 _ => {
                     todo!()
@@ -1227,5 +1237,31 @@ mod test {
 
         assert_eq!(cpu.register_a, 0xa0);
         assert_eq!(cpu.status, 0b1100_0000);
+    }
+    #[test]
+    fn test_pha() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x48]);
+        cpu.reset();
+        cpu.register_a = 0xff;
+        cpu.run();
+
+        assert_eq!(
+            cpu.mem_read((STACK as u16) + cpu.stack_pointer.wrapping_add(1) as u16),
+            0xff
+        );
+    }
+    #[test]
+    fn test_php() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x08]);
+        cpu.reset();
+        cpu.status = 0xff;
+        cpu.run();
+
+        assert_eq!(
+            cpu.mem_read((STACK as u16) + cpu.stack_pointer.wrapping_add(1) as u16),
+            0xff
+        );
     }
 }

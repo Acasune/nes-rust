@@ -181,6 +181,11 @@ lazy_static! {
         OpCode::new(0xF9, "SBC", 3, 4, AddressingMode::Absolute_Y),
         OpCode::new(0xE1, "SBC", 2, 6, AddressingMode::Indirect_X),
         OpCode::new(0xF1, "SBC", 2, 5, AddressingMode::Indirect_Y),
+        /* Stack Instructions */
+        /* PHA */
+        OpCode::new(0x48, "PHA", 1, 3, AddressingMode::NoneAddressing),
+        /* PHP */
+        OpCode::new(0x08, "PHP", 1, 3, AddressingMode::NoneAddressing),
         /* BRK */
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
     ];
