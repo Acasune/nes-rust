@@ -67,6 +67,15 @@ lazy_static! {
         OpCode::new(0xC0, "CMY", 2, 2, AddressingMode::Immediate),
         OpCode::new(0xC4, "CMY", 2, 3, AddressingMode::ZeroPage),
         OpCode::new(0xCC, "CMY", 3, 4, AddressingMode::Absolute),
+         /* DEC */
+        OpCode::new(0xC6, "DEC", 2, 5, AddressingMode::ZeroPage),
+        OpCode::new(0xD6, "DEC", 2, 6, AddressingMode::ZeroPage_X),
+        OpCode::new(0xCE, "DEC", 3, 6, AddressingMode::Absolute),
+        OpCode::new(0xDE, "DEC", 3, 7, AddressingMode::Absolute_X),
+        /* DEX */
+        OpCode::new(0xCA, "DEX", 1, 2, AddressingMode::NoneAddressing),
+        /* DEY */
+        OpCode::new(0x88, "DEY", 1, 2, AddressingMode::NoneAddressing),
         /* BRK */
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
         /* INX */

@@ -112,6 +112,29 @@ impl CPU {
         self.update_zero_and_negative_flags(compare_with.wrapping_sub(value))
     }
 
+    fn dec(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        let result = value.wrapping_sub(1);
+
+        self.mem_write(addr, result);
+        self.update_zero_and_negative_flags(result)
+    }
+
+    fn dex(&mut self, mode: &AddressingMode) {
+        let result = self.register_x.wrapping_sub(1);
+
+        self.register_x = result;
+        self.update_zero_and_negative_flags(result)
+    }
+    fn dey(&mut self, mode: &AddressingMode) {
+        let result = self.register_y.wrapping_sub(1);
+
+        self.register_y = result;
+        self.update_zero_and_negative_flags(result)
+    }
+
     fn lda(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
@@ -256,6 +279,12 @@ impl CPU {
                 0xE0 | 0xE4 | 0xEC => self.cmp(&opcode.mode, self.register_x),
                 /* CMY */
                 0xC0 | 0xC4 | 0xCC => self.cmp(&opcode.mode, self.register_y),
+                /* DEC */
+                0xC6 | 0xD6 | 0xCE | 0xDE => self.dec(&opcode.mode),
+                /* DEX */
+                0xCA => self.dex(&opcode.mode),
+                /* DEY */
+                0x88 => self.dey(&opcode.mode),
                 /* LDA */
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&opcode.mode);
@@ -671,5 +700,38 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.status, 0x80);
+    }
+    #[test]
+    fn test_dec() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x00, 0x01);
+        cpu.load(vec![0xC6, 0x00]);
+        cpu.reset();
+        cpu.status = 0x00;
+        cpu.run();
+
+        assert_eq!(cpu.status, 0x02);
+    }
+    #[test]
+    fn test_dex() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xCA]);
+        cpu.reset();
+        cpu.status = 0x00;
+        cpu.register_x = 0x01;
+        cpu.run();
+
+        assert_eq!(cpu.status, 0x02);
+    }
+    #[test]
+    fn test_dey() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x88]);
+        cpu.reset();
+        cpu.status = 0x00;
+        cpu.register_y = 0x01;
+        cpu.run();
+
+        assert_eq!(cpu.status, 0x02);
     }
 }
