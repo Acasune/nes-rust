@@ -75,7 +75,7 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_a);
     }
 
-    fn asl_immediate(&mut self) {
+    fn asl_accumulator(&mut self) {
         let value = self.register_a;
         self.set_flg(&FlgCodes::CARRY, if value >> 7 == 0 { 0 } else { 1 });
 
@@ -162,6 +162,24 @@ impl CPU {
 
         self.register_a = result;
         self.update_zero_and_negative_flags(result);
+    }
+
+    fn lsr_accumulator(&mut self) {
+        let value = self.register_a;
+        self.set_flg(&FlgCodes::CARRY, if value >> 7 == 0 { 0 } else { 1 });
+
+        self.register_a = value >> 1;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    fn lsr(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        self.set_flg(&FlgCodes::CARRY, if value >> 7 == 0 { 0 } else { 1 });
+
+        self.mem_write(addr, value >> 1);
+        self.update_zero_and_negative_flags(value >> 1);
     }
 
     fn lda(&mut self, mode: &AddressingMode) {
@@ -291,7 +309,7 @@ impl CPU {
                 /* AND */
                 0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => self.and(&opcode.mode),
                 /* ASL Immediate */
-                0x0A => self.asl_immediate(),
+                0x0A => self.asl_accumulator(),
                 /* ASL others */
                 0x06 | 0x16 | 0x0E | 0x1E => self.asl(&opcode.mode),
                 /* BIT */
@@ -312,6 +330,10 @@ impl CPU {
                 0x88 => self.dey(&opcode.mode),
                 /* EOR */
                 0x49 | 0x45 | 0x55 | 0x4D | 0x5D | 0x59 | 0x41 | 0x51 => self.eor(&opcode.mode),
+                /* LSR_accumulator */
+                0x4A => self.lsr_accumulator(),
+                /* LSR others*/
+                0x46 | 0x56 | 0x4E | 0x5E => self.lsr(&opcode.mode),
                 /* INC */
                 0xE6 | 0xF6 | 0xEE | 0xFE => self.inc(&opcode.mode),
                 /* INX */
@@ -564,7 +586,7 @@ mod test {
     }
 
     #[test]
-    fn test_asl_immediate_occurs_carry() {
+    fn test_asl_accumulate_occurs_carry() {
         let mut cpu = CPU::new();
         cpu.load(vec![0x0A]);
         cpu.reset();
@@ -810,5 +832,29 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_y, 0x02);
+    }
+    #[test]
+    fn test_lsr_accumulator() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x4A]);
+        cpu.reset();
+        cpu.register_a = 0x40;
+        cpu.status = 0x00;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x20);
+        assert_eq!(cpu.status, 0x00);
+    }
+
+    #[test]
+    fn test_lsr_zeropage() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x10, 0x02);
+        cpu.load(vec![0x46, 0x10]);
+        cpu.reset();
+        cpu.run();
+
+        assert_eq!(cpu.mem_read(0x10), 0x01);
+        assert_eq!(cpu.status, 0x00);
     }
 }

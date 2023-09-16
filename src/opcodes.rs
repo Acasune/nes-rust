@@ -45,7 +45,7 @@ lazy_static! {
         OpCode::new(0x0A, "ASL", 1, 2, AddressingMode::NoneAddressing),
         OpCode::new(0x06, "ASL", 2, 5, AddressingMode::ZeroPage),
         OpCode::new(0x16, "ASL", 2, 6, AddressingMode::ZeroPage_X),
-        OpCode::new(0x0E, "ASL", 3, 7, AddressingMode::Absolute),
+        OpCode::new(0x0E, "ASL", 3, 6, AddressingMode::Absolute),
         OpCode::new(0x1E, "ASL", 3, 7, AddressingMode::Absolute_X),
         /* BIT */
         OpCode::new(0x24, "BIT", 2, 3, AddressingMode::ZeroPage),
@@ -94,6 +94,12 @@ lazy_static! {
         OpCode::new(0xE8, "INX", 1, 2, AddressingMode::NoneAddressing),
         /* INY */
         OpCode::new(0xC8, "INY", 1, 2, AddressingMode::NoneAddressing),
+        /* LSR */
+        OpCode::new(0x4A, "LSR", 1, 2, AddressingMode::NoneAddressing),
+        OpCode::new(0x46, "LSR", 2, 5, AddressingMode::ZeroPage),
+        OpCode::new(0x56, "LSR", 2, 6, AddressingMode::ZeroPage_X),
+        OpCode::new(0x4E, "LSR", 3, 6, AddressingMode::Absolute),
+        OpCode::new(0x5E, "LSR", 3, 7, AddressingMode::Absolute_X),
         /* BRK */
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
         /* LDA */
