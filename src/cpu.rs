@@ -221,6 +221,28 @@ impl CPU {
         self.update_zero_and_negative_flags((value >> 1) | (old_carry << 7));
     }
 
+    fn sbc(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = ((self.mem_read(addr) as i8).wrapping_neg().wrapping_sub(1)) as u8;
+
+        // A - M - (1 - C) = A + (-M) -1 + C
+        let sum = self.register_a as u16 + value as u16 + self.get_flg(&FlgCodes::CARRY) as u16;
+        self.set_flg(&FlgCodes::CARRY, if sum > 0xFF { 1 } else { 0 });
+
+        let result = (sum % 255) as u8;
+        self.set_flg(
+            &FlgCodes::OVERFLOW,
+            if ((value & 0x80) == (self.register_a & 0x80)) & (result & 0x80 != value & 0x80) {
+                1
+            } else {
+                0
+            },
+        );
+        // set_register_a
+        self.register_a = result;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
     fn ora(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
@@ -399,6 +421,10 @@ impl CPU {
                 0x6A => self.ror_accumulator(),
                 /* ROR others*/
                 0x66 | 0x76 | 0x6E | 0x7E => self.ror(&opcode.mode),
+                /* SBC */
+                0xE9 | 0xE5 | 0xF5 | 0xED | 0xFD | 0xF9 | 0xE1 | 0xF1 => {
+                    self.sbc(&opcode.mode);
+                }
                 /* LDA */
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&opcode.mode);
@@ -979,4 +1005,69 @@ mod test {
         assert_eq!(cpu.mem_read(0x10), 0b1100_0000);
         // assert_eq!(cpu.status, 0x81);
     }
+
+    #[test]
+    fn test_sbc_no_carry_and_no_overflow() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xE9, 0xf0]);
+        cpu.reset();
+        cpu.register_a = 0x50;
+        cpu.status = 0x00;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x5f);
+        assert_eq!(cpu.status, 0b0000_0000);
+    }
+
+    #[test]
+    fn test_sbc_has_carry() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xE9, 0xf0]);
+        cpu.reset();
+        cpu.register_a = 0x50;
+        cpu.status = 0x01;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x60);
+        assert_eq!(cpu.status, 0b0000_0000);
+    }
+
+    #[test]
+    fn test_sbc_occurs_carry() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xE9, 0x30]);
+        cpu.reset();
+        cpu.register_a = 0x50;
+        cpu.status = 0x00;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x20);
+        assert_eq!(cpu.status, 0b0000_0001);
+    }
+
+    #[test]
+    fn test_sbc_occurs_overflow_plus() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xE9, 0xb0]);
+        cpu.reset();
+        cpu.register_a = 0x50;
+        cpu.status = 0x00;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x9f);
+        assert_eq!(cpu.status, 0b1100_0000);
+    }
+    #[test]
+    fn test_sbc_occurs_overflow_plus_with_carry() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xE9, 0xb0]);
+        cpu.reset();
+        cpu.register_a = 0x50;
+        cpu.status = 0x01;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0xa0);
+        assert_eq!(cpu.status, 0b1100_0000);
+    }
+
 }
