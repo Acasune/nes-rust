@@ -135,6 +135,25 @@ impl CPU {
         self.update_zero_and_negative_flags(result)
     }
 
+    fn inc(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        let result = value.wrapping_add(1);
+
+        self.mem_write(addr, result);
+        self.update_zero_and_negative_flags(result)
+    }
+
+    fn inx(&mut self) {
+        self.register_x = self.register_x.wrapping_add(1);
+        self.update_zero_and_negative_flags(self.register_x);
+    }
+    fn iny(&mut self) {
+        self.register_y = self.register_y.wrapping_add(1);
+        self.update_zero_and_negative_flags(self.register_y);
+    }
+
     fn eor(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
@@ -158,10 +177,6 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_x);
     }
 
-    fn inx(&mut self) {
-        self.register_x = self.register_x.wrapping_add(1);
-        self.update_zero_and_negative_flags(self.register_x);
-    }
     fn sta(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         self.mem_write(addr, self.register_a);
@@ -297,12 +312,17 @@ impl CPU {
                 0x88 => self.dey(&opcode.mode),
                 /* EOR */
                 0x49 | 0x45 | 0x55 | 0x4D | 0x5D | 0x59 | 0x41 | 0x51 => self.eor(&opcode.mode),
+                /* INC */
+                0xE6 | 0xF6 | 0xEE | 0xFE => self.inc(&opcode.mode),
+                /* INX */
+                0xE8 => self.inx(),
+                /* INY */
+                0xC8 => self.iny(),
                 /* LDA */
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&opcode.mode);
                 }
                 0xAA => self.tax(),
-                0xE8 => self.inx(),
                 /* STA */
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
                     self.sta(&AddressingMode::ZeroPage);
@@ -756,5 +776,39 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.register_a, 0x81);
+    }
+
+    #[test]
+    fn test_inc() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x00, 0x01);
+        cpu.load(vec![0xE6, 0x00]);
+        cpu.reset();
+        cpu.status = 0x00;
+        cpu.run();
+
+        assert_eq!(cpu.mem_read(0x00), 0x02);
+    }
+    #[test]
+    fn test_inx() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xE8]);
+        cpu.reset();
+        cpu.status = 0x00;
+        cpu.register_x = 0x01;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 0x02);
+    }
+    #[test]
+    fn test_iny() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xC8]);
+        cpu.reset();
+        cpu.status = 0x00;
+        cpu.register_y = 0x01;
+        cpu.run();
+
+        assert_eq!(cpu.register_y, 0x02);
     }
 }
