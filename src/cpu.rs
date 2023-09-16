@@ -67,6 +67,13 @@ impl CPU {
         self.register_a = result;
         self.update_zero_and_negative_flags(self.register_a);
     }
+    fn and(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        self.register_a &= value;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
 
     fn lda(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
@@ -196,7 +203,8 @@ impl CPU {
                 0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => {
                     self.adc(&opcode.mode);
                 }
-                //0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => self.and(&opcode.mode),
+                /* AND */
+                0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => self.and(&opcode.mode),
                 /* LDA */
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&opcode.mode);
@@ -402,5 +410,31 @@ mod test {
 
         assert_eq!(cpu.register_a, 0x01);
         assert_eq!(cpu.status, 0x01);
+    }
+
+    #[test]
+    fn test_and() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x29, 0x01]);
+        cpu.reset();
+        cpu.register_a = 0x01;
+        cpu.status = 0x00;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x01);
+        assert_eq!(cpu.status, 0x00);
+    }
+
+    #[test]
+    fn test_and_occures_register_a_0() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x29, 0x00]);
+        cpu.reset();
+        cpu.register_a = 0x01;
+        cpu.status = 0x00;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x00);
+        assert_eq!(cpu.status, 0x02);
     }
 }
