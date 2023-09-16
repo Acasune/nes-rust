@@ -135,6 +135,16 @@ impl CPU {
         self.update_zero_and_negative_flags(result)
     }
 
+    fn eor(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        let result = self.register_a ^ value;
+
+        self.register_a = result;
+        self.update_zero_and_negative_flags(result);
+    }
+
     fn lda(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
@@ -285,6 +295,8 @@ impl CPU {
                 0xCA => self.dex(&opcode.mode),
                 /* DEY */
                 0x88 => self.dey(&opcode.mode),
+                /* EOR */
+                0x49 | 0x45 | 0x55 | 0x4D | 0x5D | 0x59 | 0x41 | 0x51 => self.eor(&opcode.mode),
                 /* LDA */
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&opcode.mode);
@@ -733,5 +745,16 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.status, 0x02);
+    }
+    #[test]
+    fn test_eor() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x49, 0x80]);
+        cpu.reset();
+        cpu.status = 0x00;
+        cpu.register_a = 0x01;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x81);
     }
 }
