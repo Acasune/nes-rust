@@ -93,6 +93,17 @@ impl CPU {
         self.update_zero_and_negative_flags(value << 1);
     }
 
+    fn bit(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        let result = self.register_a & value;
+
+        self.set_flg(&FlgCodes::ZERO, if result == 0 { 1 } else { 0 });
+        self.set_flg(&FlgCodes::OVERFLOW, result >> 6 & 1);
+        self.set_flg(&FlgCodes::NEGATIV, result >> 7 & 1);
+    }
+
     fn lda(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
@@ -227,6 +238,8 @@ impl CPU {
                 0x0A => self.asl_immediate(),
                 /* ASL others */
                 0x06 | 0x16 | 0x0E | 0x1E => self.asl(&opcode.mode),
+                /* BIT */
+                0x24 | 0x2C => self.bit(&opcode.mode),
                 /* LDA */
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&opcode.mode);
@@ -508,5 +521,31 @@ mod test {
 
         assert_eq!(cpu.mem_read(0x10), 0x00);
         assert_eq!(cpu.status, 0x03);
+    }
+
+    #[test]
+    fn test_bit_zero() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x00, 0x80);
+        cpu.load(vec![0x24, 0x00]);
+        cpu.reset();
+        cpu.status = 0x00;
+        cpu.register_a = 0x01;
+        cpu.run();
+
+        assert_eq!(cpu.status, 0x2);
+    }
+
+    #[test]
+    fn test_bit_zero_neg_overflow_flags() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x00, 0xc0);
+        cpu.load(vec![0x24, 0x00]);
+        cpu.reset();
+        cpu.status = 0x00;
+        cpu.register_a = 0xc0;
+        cpu.run();
+
+        assert_eq!(cpu.status, 0xc0);
     }
 }
