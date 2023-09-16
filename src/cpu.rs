@@ -75,6 +75,24 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_a);
     }
 
+    fn asl_immediate(&mut self) {
+        let value = self.register_a;
+        self.set_flg(&FlgCodes::CARRY, if value >> 7 == 0 { 0 } else { 1 });
+
+        self.register_a = value << 1;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+
+    fn asl(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        self.set_flg(&FlgCodes::CARRY, if value >> 7 == 0 { 0 } else { 1 });
+
+        self.mem_write(addr, value << 1);
+        self.update_zero_and_negative_flags(value << 1);
+    }
+
     fn lda(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
@@ -205,6 +223,10 @@ impl CPU {
                 }
                 /* AND */
                 0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => self.and(&opcode.mode),
+                /* ASL Immediate */
+                0x0A => self.asl_immediate(),
+                /* ASL others */
+                0x06 | 0x16 | 0x0E | 0x1E => self.asl(&opcode.mode),
                 /* LDA */
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     self.lda(&opcode.mode);
@@ -426,7 +448,7 @@ mod test {
     }
 
     #[test]
-    fn test_and_occures_register_a_0() {
+    fn test_and_occurs_register_a_0() {
         let mut cpu = CPU::new();
         cpu.load(vec![0x29, 0x00]);
         cpu.reset();
@@ -436,5 +458,55 @@ mod test {
 
         assert_eq!(cpu.register_a, 0x00);
         assert_eq!(cpu.status, 0x02);
+    }
+
+    #[test]
+    fn test_asl_immediate() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x0A]);
+        cpu.reset();
+        cpu.register_a = 0x01;
+        cpu.status = 0x00;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x02);
+        assert_eq!(cpu.status, 0x00);
+    }
+
+    #[test]
+    fn test_asl_immediate_occurs_carry() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x0A]);
+        cpu.reset();
+        cpu.register_a = 0x80;
+        cpu.status = 0x00;
+        cpu.run();
+
+        assert_eq!(cpu.register_a, 0x00);
+        assert_eq!(cpu.status, 0x03);
+    }
+
+    #[test]
+    fn test_asl_zeropage() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x10, 0x01);
+        cpu.load(vec![0x16, 0x10]);
+        cpu.reset();
+        cpu.run();
+
+        assert_eq!(cpu.mem_read(0x10), 0x02);
+        assert_eq!(cpu.status, 0x00);
+    }
+
+    #[test]
+    fn test_asl_register_x_occurs_carry() {
+        let mut cpu = CPU::new();
+        cpu.mem_write(0x10, 0x80);
+        cpu.load(vec![0x16, 0x10]);
+        cpu.reset();
+        cpu.run();
+
+        assert_eq!(cpu.mem_read(0x10), 0x00);
+        assert_eq!(cpu.status, 0x03);
     }
 }
