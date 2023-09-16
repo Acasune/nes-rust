@@ -277,9 +277,13 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_x);
     }
 
-    fn sta(&mut self, mode: &AddressingMode) {
+    fn store(&mut self, mode: &AddressingMode, kind: &REGISTER) {
         let addr = self.get_operand_address(mode);
-        self.mem_write(addr, self.register_a);
+        match kind {
+            REGISTER::REGISTER_A => self.mem_write(addr, self.register_a),
+            REGISTER::REGISTER_X => self.mem_write(addr, self.register_x),
+            REGISTER::REGISTER_Y => self.mem_write(addr, self.register_y),
+        }
     }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
@@ -399,7 +403,15 @@ impl CPU {
                 }
                 /* STA */
                 0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
-                    self.sta(&AddressingMode::ZeroPage);
+                    self.store(&opcode.mode, &REGISTER::REGISTER_A);
+                }
+                /* STX */
+                0x86 | 0x96 | 0x8E => {
+                    self.store(&opcode.mode, &REGISTER::REGISTER_X);
+                }
+                /* STY */
+                0x84 | 0x94 | 0x8C => {
+                    self.store(&opcode.mode, &REGISTER::REGISTER_Y);
                 }
                 /* TAX */
                 0xAA => self.tax(),
@@ -572,6 +584,33 @@ mod test {
         cpu.load_and_run(vec![0xa9, 0xc0, 0xaa, 0xe8, 0x00]);
 
         assert_eq!(cpu.register_x, 0xc1)
+    }
+    #[test]
+    fn test_sta() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x85, 0x00]);
+        cpu.reset();
+        cpu.register_a = 0xff;
+        cpu.run();
+        assert_eq!(cpu.mem_read(0x00), 0xff)
+    }
+    #[test]
+    fn test_stx() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x86, 0x00]);
+        cpu.reset();
+        cpu.register_x = 0xff;
+        cpu.run();
+        assert_eq!(cpu.mem_read(0x00), 0xff)
+    }
+    #[test]
+    fn test_sty() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x84, 0x00]);
+        cpu.reset();
+        cpu.register_y = 0xff;
+        cpu.run();
+        assert_eq!(cpu.mem_read(0x00), 0xff)
     }
 
     #[test]
