@@ -26,6 +26,12 @@ pub enum FlgCodes {
     NEGATIV,           // 0b1000_0000
 }
 
+pub enum REGISTER {
+    REGISTER_A,
+    REGISTER_X,
+    REGISTER_Y,
+}
+
 pub struct CPU {
     pub register_a: u8,
     pub register_x: u8,
@@ -253,12 +259,17 @@ impl CPU {
         self.update_zero_and_negative_flags(result);
     }
 
-    fn lda(&mut self, mode: &AddressingMode) {
+    fn ld(&mut self, mode: &AddressingMode, kind: &REGISTER) {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
 
-        self.register_a = value;
-        self.update_zero_and_negative_flags(self.register_a);
+        match kind {
+            REGISTER::REGISTER_A => self.register_a = value,
+            REGISTER::REGISTER_X => self.register_x = value,
+            REGISTER::REGISTER_Y => self.register_y = value,
+        }
+
+        self.update_zero_and_negative_flags(value);
     }
 
     fn tax(&mut self) {
@@ -373,6 +384,27 @@ impl CPU {
                 .expect(&format!("OpCode {:x} is not recognized", code));
 
             match code {
+                /* Transfer Instructions */
+                /* LDA */
+                0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
+                    self.ld(&opcode.mode, &REGISTER::REGISTER_A);
+                }
+                /* LDX */
+                0xA2 | 0xA6 | 0xB6 | 0xAE | 0xBE => {
+                    self.ld(&opcode.mode, &REGISTER::REGISTER_X);
+                }
+                /* LDY */
+                0xA0 | 0xA4 | 0xB4 | 0xAB | 0xBC => {
+                    self.ld(&opcode.mode, &REGISTER::REGISTER_Y);
+                }
+                /* STA */
+                0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
+                    self.sta(&AddressingMode::ZeroPage);
+                }
+                /* TAX */
+                0xAA => self.tax(),
+
+                /* Arithmetic Instructions */
                 /* ADC */
                 0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => {
                     self.adc(&opcode.mode);
@@ -424,15 +456,6 @@ impl CPU {
                 /* SBC */
                 0xE9 | 0xE5 | 0xF5 | 0xED | 0xFD | 0xF9 | 0xE1 | 0xF1 => {
                     self.sbc(&opcode.mode);
-                }
-                /* LDA */
-                0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
-                    self.lda(&opcode.mode);
-                }
-                0xAA => self.tax(),
-                /* STA */
-                0x85 | 0x95 | 0x8D | 0x9D | 0x99 | 0x81 | 0x91 => {
-                    self.sta(&AddressingMode::ZeroPage);
                 }
                 0x00 => return,
                 _ => {
@@ -520,6 +543,18 @@ mod test {
     fn test_0xa9_lda_negative_flag() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 0xff, 0x00]);
+        assert!(cpu.status & 0b1000_0000 == 0b1000_0000);
+    }
+    #[test]
+    fn test_ldx_negative_flag() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa2, 0xff, 0x00]);
+        assert!(cpu.status & 0b1000_0000 == 0b1000_0000);
+    }
+    #[test]
+    fn test_ldy_negative_flag() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa0, 0xff, 0x00]);
         assert!(cpu.status & 0b1000_0000 == 0b1000_0000);
     }
 

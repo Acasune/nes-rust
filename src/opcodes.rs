@@ -23,6 +23,39 @@ impl OpCode {
 
 lazy_static! {
     pub static ref CPU_OPS_CODES: Vec<OpCode> = vec![
+        /* Transfer Instructions */
+        /* LDA */
+        OpCode::new(0xA9, "LDA", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xA5, "LDA", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0xB5, "LDA", 2, 4, AddressingMode::ZeroPage_X),
+        OpCode::new(0xAD, "LDA", 3, 4, AddressingMode::Absolute),
+        OpCode::new(0xBD, "LDA", 3, 4, AddressingMode::Absolute_X),
+        OpCode::new(0xB9, "LDA", 3, 4, AddressingMode::Absolute_Y),
+        OpCode::new(0xA1, "LDA", 2, 6, AddressingMode::Indirect_X),
+        OpCode::new(0xB1, "LDA", 2, 5, AddressingMode::Indirect_Y),
+        /* LDX */
+        OpCode::new(0xA2, "LDX", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xA6, "LDX", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0xB6, "LDX", 2, 4, AddressingMode::ZeroPage_Y),
+        OpCode::new(0xAE, "LDX", 3, 4, AddressingMode::Absolute),
+        OpCode::new(0xBE, "LDX", 3, 4, AddressingMode::Absolute_Y),
+        /* LDY */
+        OpCode::new(0xA0, "LDY", 2, 2, AddressingMode::Immediate),
+        OpCode::new(0xA4, "LDY", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0xB4, "LDY", 2, 4, AddressingMode::ZeroPage_X),
+        OpCode::new(0xAB, "LDY", 3, 4, AddressingMode::Absolute),
+        OpCode::new(0xBC, "LDY", 3, 4, AddressingMode::Absolute_X),
+        /* STA */
+        OpCode::new(0x85, "STA", 2, 3, AddressingMode::ZeroPage),
+        OpCode::new(0x95, "STA", 2, 4, AddressingMode::ZeroPage_X),
+        OpCode::new(0x8D, "STA", 3, 4, AddressingMode::Absolute),
+        OpCode::new(0x9D, "STA", 3, 5, AddressingMode::Absolute_X),
+        OpCode::new(0x99, "STA", 3, 5, AddressingMode::Absolute_Y),
+        OpCode::new(0x81, "STA", 2, 6, AddressingMode::Indirect_X),
+        OpCode::new(0x91, "STA", 2, 6, AddressingMode::Indirect_Y),
+        /* TAX */
+        OpCode::new(0xAA, "TAX", 1, 2, AddressingMode::NoneAddressing),
+        /* Arithmetic Instructions */
         /* ADC */
         OpCode::new(0x69, "ADC", 2, 2, AddressingMode::Immediate),
         OpCode::new(0x65, "ADC", 2, 3, AddressingMode::ZeroPage),
@@ -132,25 +165,6 @@ lazy_static! {
         OpCode::new(0xF1, "SBC", 2, 5, AddressingMode::Indirect_Y),
         /* BRK */
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
-        /* LDA */
-        OpCode::new(0xA9, "LDA", 2, 2, AddressingMode::Immediate),
-        OpCode::new(0xA5, "LDA", 2, 3, AddressingMode::ZeroPage),
-        OpCode::new(0xB5, "LDA", 2, 4, AddressingMode::ZeroPage_X),
-        OpCode::new(0xAD, "LDA", 3, 4, AddressingMode::Absolute),
-        OpCode::new(0xBD, "LDA", 3, 4, AddressingMode::Absolute_X),
-        OpCode::new(0xB9, "LDA", 3, 4, AddressingMode::Absolute_Y),
-        OpCode::new(0xA1, "LDA", 2, 6, AddressingMode::Indirect_X),
-        OpCode::new(0xB1, "LDA", 2, 5, AddressingMode::Indirect_Y),
-        /* STA */
-        OpCode::new(0x85, "STA", 2, 3, AddressingMode::ZeroPage),
-        OpCode::new(0x95, "STA", 2, 4, AddressingMode::ZeroPage_X),
-        OpCode::new(0x8D, "STA", 3, 4, AddressingMode::Absolute),
-        OpCode::new(0x9D, "STA", 3, 5, AddressingMode::Absolute_X),
-        OpCode::new(0x99, "STA", 3, 5, AddressingMode::Absolute_Y),
-        OpCode::new(0x81, "STA", 2, 6, AddressingMode::Indirect_X),
-        OpCode::new(0x91, "STA", 2, 6, AddressingMode::Indirect_Y),
-        /* TAX */
-        OpCode::new(0xAA, "TAX", 1, 2, AddressingMode::NoneAddressing),
     ];
     pub static ref OPCODES_MAP: HashMap<u8, &'static OpCode> = {
         let mut map = HashMap::new();
