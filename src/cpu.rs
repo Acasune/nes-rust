@@ -38,8 +38,12 @@ pub struct CPU {
     pub register_y: u8,
     pub status: u8,
     pub program_counter: u16,
+    pub stack_pointer: u8,
     memory: [u8; 0xFFFF],
 }
+
+const STACK: u16 = 0x0100;
+const STACK_RESET: u8 = 0xfd;
 
 impl CPU {
     pub fn new() -> Self {
@@ -49,6 +53,7 @@ impl CPU {
             register_y: 0,
             status: 0b0000_0000,
             program_counter: 0,
+            stack_pointer: STACK_RESET,
             memory: [0; 0xFFFF],
         }
     }
@@ -276,6 +281,25 @@ impl CPU {
         self.register_x = self.register_a;
         self.update_zero_and_negative_flags(self.register_x);
     }
+    fn txa(&mut self) {
+        self.register_a = self.register_x;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+    fn tay(&mut self) {
+        self.register_y = self.register_a;
+        self.update_zero_and_negative_flags(self.register_y);
+    }
+    fn tya(&mut self) {
+        self.register_a = self.register_y;
+        self.update_zero_and_negative_flags(self.register_a);
+    }
+    fn tsx(&mut self) {
+        self.register_x = self.stack_pointer;
+        self.update_zero_and_negative_flags(self.register_x);
+    }
+    fn txs(&mut self) {
+        self.stack_pointer = self.register_x;
+    }
 
     fn store(&mut self, mode: &AddressingMode, kind: &REGISTER) {
         let addr = self.get_operand_address(mode);
@@ -415,7 +439,16 @@ impl CPU {
                 }
                 /* TAX */
                 0xAA => self.tax(),
-
+                /* TXA */
+                0x8A => self.txa(),
+                /* TAY */
+                0xA8 => self.tay(),
+                /* TYA */
+                0x98 => self.tya(),
+                /* TSX */
+                0xBA => self.tsx(),
+                /* TXS */
+                0x9A => self.txs(),
                 /* Arithmetic Instructions */
                 /* ADC */
                 0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => {
@@ -612,7 +645,59 @@ mod test {
         cpu.run();
         assert_eq!(cpu.mem_read(0x00), 0xff)
     }
-
+    #[test]
+    fn test_tax() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xAA]);
+        cpu.reset();
+        cpu.register_a = 0xff;
+        cpu.run();
+        assert_eq!(cpu.register_x, 0xff)
+    }
+    #[test]
+    fn test_txa() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x8A]);
+        cpu.reset();
+        cpu.register_x = 0xff;
+        cpu.run();
+        assert_eq!(cpu.register_a, 0xff)
+    }
+    #[test]
+    fn test_tay() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xA8]);
+        cpu.reset();
+        cpu.register_a = 0xff;
+        cpu.run();
+        assert_eq!(cpu.register_y, 0xff)
+    }
+    #[test]
+    fn test_tya() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x98]);
+        cpu.reset();
+        cpu.register_y = 0xff;
+        cpu.run();
+        assert_eq!(cpu.register_y, 0xff)
+    }
+    #[test]
+    fn test_tsx() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xBA]);
+        cpu.reset();
+        cpu.run();
+        assert_eq!(cpu.register_x, STACK_RESET)
+    }
+    #[test]
+    fn test_txs() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x9A]);
+        cpu.reset();
+        cpu.register_x = 0xff;
+        cpu.run();
+        assert_eq!(cpu.stack_pointer, 0xff)
+    }
     #[test]
     fn test_inx_overflow() {
         let mut cpu = CPU::new();

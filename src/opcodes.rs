@@ -63,6 +63,16 @@ lazy_static! {
         OpCode::new(0x8C, "STY", 3, 4, AddressingMode::Absolute),
         /* TAX */
         OpCode::new(0xAA, "TAX", 1, 2, AddressingMode::NoneAddressing),
+        /* TXA */
+        OpCode::new(0x8A, "TXA", 1, 2, AddressingMode::NoneAddressing),
+        /* TAY */
+        OpCode::new(0xA8, "TAY", 1, 2, AddressingMode::NoneAddressing),
+        /* TYA */
+        OpCode::new(0x98, "TYA", 1, 2, AddressingMode::NoneAddressing),
+        /* TSX */
+        OpCode::new(0xBA, "TSX", 1, 2, AddressingMode::NoneAddressing),
+        /* TXS */
+        OpCode::new(0x9A, "TXS", 1, 2, AddressingMode::NoneAddressing),
         /* Arithmetic Instructions */
         /* ADC */
         OpCode::new(0x69, "ADC", 2, 2, AddressingMode::Immediate),
