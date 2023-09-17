@@ -190,7 +190,7 @@ lazy_static! {
         OpCode::new(0x68, "PLA", 1, 4, AddressingMode::NoneAddressing),
         /* PLP */
         OpCode::new(0x28, "PLP", 1, 4, AddressingMode::NoneAddressing),
-        /* JUMP Instructions */
+        /* Jump Instructions */
         /* JMP */
         OpCode::new(0x4C, "JMP", 3, 3, AddressingMode::Absolute),
         OpCode::new(0x6C, "JMP", 3, 5, AddressingMode::NoneAddressing),
@@ -200,6 +200,21 @@ lazy_static! {
         OpCode::new(0x60, "RTS", 1, 6, AddressingMode::NoneAddressing),
         /* RTI */
         OpCode::new(0x40, "RTI", 1, 6, AddressingMode::NoneAddressing),
+        /* Flag Modification Instructions */
+        /* CLC */
+        OpCode::new(0x18, "CLC", 1, 2, AddressingMode::NoneAddressing),
+        /* CLD */
+        OpCode::new(0xD8, "CLD", 1, 2, AddressingMode::NoneAddressing),
+        /* CLI */
+        OpCode::new(0x58, "CLI", 1, 2, AddressingMode::NoneAddressing),
+        /* CLV */
+        OpCode::new(0xB8, "CLV", 1, 2, AddressingMode::NoneAddressing),
+        /* SEC */
+        OpCode::new(0x38, "SEC", 1, 2, AddressingMode::NoneAddressing),
+        /* SED */
+        OpCode::new(0xF8, "SED", 1, 2, AddressingMode::NoneAddressing),
+        /* SEI */
+        OpCode::new(0x78, "SEI", 1, 2, AddressingMode::NoneAddressing),
         /* BRK */
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
     ];

@@ -577,6 +577,21 @@ impl CPU {
                     self.status = self.stack_pop();
                     self.program_counter = self.stack_pop_u16();
                 }
+                /* Flag Modification Instructions */
+                /* CLC */
+                0x18 => self.set_flg(&FlgCodes::CARRY, 0),
+                /* CLD */
+                0xD8 => self.set_flg(&FlgCodes::DECIMAL_MODE, 0),
+                /* CLI */
+                0x58 => self.set_flg(&FlgCodes::INTERRUPT_DISABLE, 0),
+                /* CLV */
+                0xB8 => self.set_flg(&FlgCodes::OVERFLOW, 0),
+                /* SEC */
+                0x38 => self.set_flg(&FlgCodes::CARRY, 1),
+                /* SED */
+                0xF8 => self.set_flg(&FlgCodes::DECIMAL_MODE, 1),
+                /* SEI */
+                0x78 => self.set_flg(&FlgCodes::INTERRUPT_DISABLE, 1),
                 /* The Other Instructions */
                 0x00 => return,
                 _ => {
@@ -1329,5 +1344,25 @@ mod test {
             cpu.mem_read((STACK as u16) + cpu.stack_pointer.wrapping_add(1) as u16),
             0xff
         );
+    }
+    #[test]
+    fn test_clc_cld_cli_clv() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x18, 0xD8, 0x58, 0xB8]);
+        cpu.reset();
+        cpu.status = 0b0100_1101;
+        cpu.run();
+
+        assert_eq!(cpu.status, 0);
+    }
+    #[test]
+    fn test_sec_sed_sei() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x38, 0xF8, 0x78]);
+        cpu.reset();
+        cpu.status = 0;
+        cpu.run();
+
+        assert_eq!(cpu.status, 0b0000_1101);
     }
 }
