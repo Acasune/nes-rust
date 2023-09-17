@@ -568,10 +568,14 @@ impl CPU {
                     let target_address = self.mem_read_u16(self.program_counter);
                     self.program_counter = target_address
                 }
-
                 /* RTS */
                 0x60 => {
                     self.program_counter = self.stack_pop_u16() + 1;
+                }
+                /* RTI */
+                0x40 => {
+                    self.status = self.stack_pop();
+                    self.program_counter = self.stack_pop_u16();
                 }
                 /* The Other Instructions */
                 0x00 => return,

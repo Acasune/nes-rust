@@ -198,6 +198,8 @@ lazy_static! {
         OpCode::new(0x20, "JSR", 3, 6, AddressingMode::Absolute),
         /* RTS */
         OpCode::new(0x60, "RTS", 1, 6, AddressingMode::NoneAddressing),
+        /* RTI */
+        OpCode::new(0x40, "RTI", 1, 6, AddressingMode::NoneAddressing),
         /* BRK */
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
     ];
