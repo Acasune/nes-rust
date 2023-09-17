@@ -186,6 +186,10 @@ lazy_static! {
         OpCode::new(0x48, "PHA", 1, 3, AddressingMode::NoneAddressing),
         /* PHP */
         OpCode::new(0x08, "PHP", 1, 3, AddressingMode::NoneAddressing),
+        /* PLA */
+        OpCode::new(0x68, "PLA", 1, 4, AddressingMode::NoneAddressing),
+        /* PLP */
+        OpCode::new(0x28, "PLP", 1, 4, AddressingMode::NoneAddressing),
         /* BRK */
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
     ];

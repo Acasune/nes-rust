@@ -314,6 +314,11 @@ impl CPU {
         self.stack_pointer = self.stack_pointer.wrapping_sub(1)
     }
 
+    fn stack_pop(&mut self) -> u8 {
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+        self.mem_read((STACK as u16) + self.stack_pointer as u16)
+    }
+
     fn update_zero_and_negative_flags(&mut self, result: u8) {
         if result == 0 {
             self.status = self.status | 0b0000_0010;
@@ -511,6 +516,18 @@ impl CPU {
                 0x48 => self.stack_push(self.register_a),
                 /* PHP */
                 0x08 => self.stack_push(self.status),
+                /* PLA */
+                0x68 => {
+                    let value = self.stack_pop();
+                    self.register_a = value;
+                    self.update_zero_and_negative_flags(value);
+                }
+                /* PLP */
+                0x28 => {
+                    let value = self.stack_pop();
+                    self.status = value;
+                    self.update_zero_and_negative_flags(self.status);
+                }
                 /* The Other Instructions */
                 0x00 => return,
                 _ => {
