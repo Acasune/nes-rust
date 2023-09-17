@@ -190,6 +190,10 @@ lazy_static! {
         OpCode::new(0x68, "PLA", 1, 4, AddressingMode::NoneAddressing),
         /* PLP */
         OpCode::new(0x28, "PLP", 1, 4, AddressingMode::NoneAddressing),
+        /* JUMP Instructions */
+        /* JMP */
+        OpCode::new(0x4C, "JMP", 3, 3, AddressingMode::Absolute),
+        OpCode::new(0x6C, "JMP", 3, 5, AddressingMode::NoneAddressing),
         /* BRK */
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
     ];

@@ -528,6 +528,26 @@ impl CPU {
                     self.status = value;
                     self.update_zero_and_negative_flags(self.status);
                 }
+                /* JMP Instructions */
+                /* JMP */
+                0x4C => {
+                    let mem_address = self.mem_read_u16(self.program_counter);
+                    self.program_counter = mem_address;
+                }
+                /* JMP Indirect */
+                0x6C => {
+                    let mem_address = self.mem_read_u16(self.program_counter);
+
+                    let indirect_ref = if mem_address & 0x00FF == 0x00FF {
+                        let lo = self.mem_read(mem_address);
+                        let hi = self.mem_read(mem_address & 0xFF00);
+                        (hi as u16) << 8 | (lo as u16)
+                    } else {
+                        self.mem_read_u16(mem_address)
+                    };
+
+                    self.program_counter = indirect_ref;
+                }
                 /* The Other Instructions */
                 0x00 => return,
                 _ => {
