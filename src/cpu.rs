@@ -319,6 +319,20 @@ impl CPU {
         self.mem_read((STACK as u16) + self.stack_pointer as u16)
     }
 
+    fn stack_push_u16(&mut self, data: u16) {
+        let lo = (data >> 8) as u8;
+        let hi = (data & 0xff) as u8;
+        self.stack_push(hi);
+        self.stack_push(lo);
+    }
+
+    fn stack_pop_u16(&mut self) -> u16 {
+        let lo = self.stack_pop() as u16;
+        let hi = self.stack_pop() as u16;
+
+        hi << 8 | lo
+    }
+
     fn update_zero_and_negative_flags(&mut self, result: u8) {
         if result == 0 {
             self.status = self.status | 0b0000_0010;
@@ -547,6 +561,17 @@ impl CPU {
                     };
 
                     self.program_counter = indirect_ref;
+                }
+                /* JSR */
+                0x20 => {
+                    self.stack_push_u16(self.program_counter + 2 - 1);
+                    let target_address = self.mem_read_u16(self.program_counter);
+                    self.program_counter = target_address
+                }
+
+                /* RTS */
+                0x60 => {
+                    self.program_counter = self.stack_pop_u16() + 1;
                 }
                 /* The Other Instructions */
                 0x00 => return,

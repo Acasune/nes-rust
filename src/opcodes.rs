@@ -194,6 +194,10 @@ lazy_static! {
         /* JMP */
         OpCode::new(0x4C, "JMP", 3, 3, AddressingMode::Absolute),
         OpCode::new(0x6C, "JMP", 3, 5, AddressingMode::NoneAddressing),
+        /* JSR */
+        OpCode::new(0x20, "JSR", 3, 6, AddressingMode::Absolute),
+        /* RTS */
+        OpCode::new(0x60, "RTS", 1, 6, AddressingMode::NoneAddressing),
         /* BRK */
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
     ];
