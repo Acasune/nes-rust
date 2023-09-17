@@ -215,8 +215,11 @@ lazy_static! {
         OpCode::new(0xF8, "SED", 1, 2, AddressingMode::NoneAddressing),
         /* SEI */
         OpCode::new(0x78, "SEI", 1, 2, AddressingMode::NoneAddressing),
+        /* The Other Instructions */
         /* BRK */
         OpCode::new(0x00, "BRK", 1, 7, AddressingMode::NoneAddressing),
+        /* NOP */
+        OpCode::new(0xEA, "NOP", 1, 2, AddressingMode::NoneAddressing),
     ];
     pub static ref OPCODES_MAP: HashMap<u8, &'static OpCode> = {
         let mut map = HashMap::new();

@@ -593,7 +593,10 @@ impl CPU {
                 /* SEI */
                 0x78 => self.set_flg(&FlgCodes::INTERRUPT_DISABLE, 1),
                 /* The Other Instructions */
+                /* BRK */
                 0x00 => return,
+                /* NOP */
+                0xEA => {},
                 _ => {
                     todo!()
                 }
