@@ -333,6 +333,17 @@ impl CPU {
         hi << 8 | lo
     }
 
+    fn branch(&mut self, condition: bool) {
+        if condition {
+            let jump = self.mem_read(self.program_counter) as i8;
+            let jump_addr = self
+                .program_counter
+                .wrapping_add(1)
+                .wrapping_add(jump as u16);
+            self.program_counter = jump_addr;
+        }
+    }
+
     fn update_zero_and_negative_flags(&mut self, result: u8) {
         if result == 0 {
             self.status = self.status | 0b0000_0010;
@@ -430,6 +441,7 @@ impl CPU {
         loop {
             let code = self.mem_read(self.program_counter);
             self.program_counter += 1;
+            let program_counter_state = self.program_counter;
             let opcode = OPCODES_MAP
                 .get(&code)
                 .expect(&format!("OpCode {:x} is not recognized", code));
@@ -542,7 +554,7 @@ impl CPU {
                     self.status = value;
                     self.update_zero_and_negative_flags(self.status);
                 }
-                /* JMP Instructions */
+                /* Jump Instructions */
                 /* JMP */
                 0x4C => {
                     let mem_address = self.mem_read_u16(self.program_counter);
@@ -577,6 +589,23 @@ impl CPU {
                     self.status = self.stack_pop();
                     self.program_counter = self.stack_pop_u16();
                 }
+                /* Branching Instructions */
+                /* BCC */
+                0x90 => self.branch(self.get_flg(&FlgCodes::CARRY) == 0),
+                /* BCS */
+                0xB0 => self.branch(self.get_flg(&FlgCodes::CARRY) == 1),
+                /* BEQ */
+                0xF0 => self.branch(self.get_flg(&FlgCodes::ZERO) == 1),
+                /* BMI */
+                0x30 => self.branch(self.get_flg(&FlgCodes::NEGATIV) == 1),
+                /* BNE */
+                0xD0 => self.branch(self.get_flg(&FlgCodes::ZERO) == 0),
+                /* BPL */
+                0x10 => self.branch(self.get_flg(&FlgCodes::NEGATIV) == 0),
+                /* BVC */
+                0x50 => self.branch(self.get_flg(&FlgCodes::OVERFLOW) == 0),
+                /* BVS */
+                0x70 => self.branch(self.get_flg(&FlgCodes::OVERFLOW) == 1),
                 /* Flag Modification Instructions */
                 /* CLC */
                 0x18 => self.set_flg(&FlgCodes::CARRY, 0),
@@ -596,12 +625,14 @@ impl CPU {
                 /* BRK */
                 0x00 => return,
                 /* NOP */
-                0xEA => {},
+                0xEA => {}
                 _ => {
                     todo!()
                 }
             }
-            self.program_counter += (opcode.len - 1) as u16;
+            if program_counter_state == self.program_counter {
+                self.program_counter += (opcode.len - 1) as u16
+            };
         }
     }
 
@@ -1367,5 +1398,261 @@ mod test {
         cpu.run();
 
         assert_eq!(cpu.status, 0b0000_1101);
+    }
+    #[test]
+    fn test_bcc() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x90, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_bcc_with_carry() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x90, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0000_0001;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 0);
+    }
+    #[test]
+    fn test_bcc_negative_value() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x90, 0xfc]);
+        cpu.reset();
+        cpu.mem_write(0x7FFF, 0x00);
+        cpu.mem_write(0x7FFE, 0xe8);
+        cpu.status = 0b0000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_bcs() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xB0, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 0);
+    }
+    #[test]
+    fn test_bcs_with_carry() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xB0, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0000_0001;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_bcs_negative_value() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xB0, 0xFC]);
+        cpu.reset();
+        cpu.mem_write_u16(0x7FFF, 0x00);
+        cpu.mem_write_u16(0x7FFE, 0xe8);
+        cpu.status = 0b0000_0001;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 0);
+    }
+    #[test]
+    fn test_beq() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xF0, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0000_0010;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_beq_with_carry() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xF0, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 0);
+    }
+    #[test]
+    fn test_beq_negative_value() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xF0, 0xFC]);
+        cpu.reset();
+        cpu.mem_write(0x7FFF, 0x00);
+        cpu.mem_write(0x7FFE, 0xE8);
+        cpu.status = 0b0000_0010;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_bmi() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x30, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 0);
+    }
+    #[test]
+    fn test_bmi_with_carry() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x30, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b1000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_bmi_negative_value() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x30, 0xFC]);
+        cpu.reset();
+        cpu.mem_write(0x7FFF, 0x00);
+        cpu.mem_write(0x7FFE, 0xE8);
+        cpu.status = 0b1000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_bne() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xD0, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_bne_with_carry() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xD0, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0000_0010;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 0);
+    }
+    #[test]
+    fn test_bne_negative_value() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0xD0, 0xFC]);
+        cpu.reset();
+        cpu.mem_write(0x7FFF, 0x00);
+        cpu.mem_write(0x7FFE, 0xE8);
+        cpu.status = 0b0000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_bpl() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x10, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_bpl_with_carry() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x10, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b1000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 0);
+    }
+    #[test]
+    fn test_bpl_negative_value() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x10, 0xFC]);
+        cpu.reset();
+        cpu.mem_write(0x7FFF, 0x00);
+        cpu.mem_write(0x7FFE, 0xE8);
+        cpu.status = 0b0000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_bvc() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x50, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_bvc_with_carry() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x50, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0100_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 0);
+    }
+    #[test]
+    fn test_bvc_negative_value() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x50, 0xFC]);
+        cpu.reset();
+        cpu.mem_write(0x7FFF, 0x00);
+        cpu.mem_write(0x7FFE, 0xE8);
+        cpu.status = 0b0000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_bvs() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x70, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0000_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 0);
+    }
+    #[test]
+    fn test_bvs_with_carry() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x70, 0x02, 0x00, 0x00, 0xE8, 0x00]);
+        cpu.reset();
+        cpu.status = 0b0100_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
+    }
+    #[test]
+    fn test_bvs_negative_value() {
+        let mut cpu = CPU::new();
+        cpu.load(vec![0x70, 0xFC]);
+        cpu.reset();
+        cpu.mem_write(0x7FFF, 0x00);
+        cpu.mem_write(0x7FFE, 0xE8);
+        cpu.status = 0b0100_0000;
+        cpu.run();
+
+        assert_eq!(cpu.register_x, 1);
     }
 }
