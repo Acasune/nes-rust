@@ -1,4 +1,6 @@
-use crate::opcodes::OPCODES_MAP;
+use std::collections::HashMap;
+
+use crate::opcodes::{self, OPCODES_MAP};
 
 #[derive(Debug)]
 #[allow(non_camel_case_types)]
@@ -51,7 +53,7 @@ impl CPU {
             register_a: 0,
             register_x: 0,
             register_y: 0,
-            status: 0b0000_0000,
+            status: 0b100100,
             program_counter: 0,
             stack_pointer: STACK_RESET,
             memory: [0; 0xFFFF],
@@ -177,7 +179,7 @@ impl CPU {
 
     fn lsr_accumulator(&mut self) {
         let value = self.register_a;
-        self.set_flg(&FlgCodes::CARRY, if value >> 7 == 0 { 0 } else { 1 });
+        self.set_flg(&FlgCodes::CARRY, if value & 1 == 0 { 0 } else { 1 });
 
         self.register_a = value >> 1;
         self.update_zero_and_negative_flags(self.register_a);
@@ -320,8 +322,8 @@ impl CPU {
     }
 
     fn stack_push_u16(&mut self, data: u16) {
-        let lo = (data >> 8) as u8;
-        let hi = (data & 0xff) as u8;
+        let hi = (data >> 8) as u8;
+        let lo = (data & 0xff) as u8;
         self.stack_push(hi);
         self.stack_push(lo);
     }
@@ -358,25 +360,25 @@ impl CPU {
         }
     }
 
-    fn mem_read(&self, addr: u16) -> u8 {
+    pub fn mem_read(&self, addr: u16) -> u8 {
         self.memory[addr as usize]
     }
 
-    fn mem_write(&mut self, addr: u16, data: u8) {
+    pub fn mem_write(&mut self, addr: u16, data: u8) {
         self.memory[addr as usize] = data;
     }
 
     pub fn reset(&mut self) {
         self.register_a = 0;
         self.register_x = 0;
-        self.status = 0;
+        self.status = 0b100100;
 
         self.program_counter = self.mem_read_u16(0xFFFC);
     }
 
     pub fn load(&mut self, program: Vec<u8>) {
-        self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
-        self.mem_write_u16(0xFFFC, 0x8000);
+        self.memory[0x0600..(0x0600 + program.len())].copy_from_slice(&program[..]);
+        self.mem_write_u16(0xFFFC, 0x0600);
     }
 
     pub fn load_and_run(&mut self, program: Vec<u8>) {
@@ -437,14 +439,24 @@ impl CPU {
         }
     }
 
+    // pub fn debug(&mut self, label: String) {
+    //     println!("{:20}... code: {:#06x} a: {:#06x} x: {:#06x} y: {:#06x} pc: {:#06x} sp: {:#06x} status: {:#10b}", label, self.mem_read(self.program_counter), self.register_a, self.register_x, self.register_y, self.program_counter, self.stack_pointer, self.status);
+    // }
+
     pub fn run(&mut self) {
+        self.run_with_callback(|_| {});
+    }
+
+    pub fn run_with_callback<F>(&mut self, mut callback: F)
+    where
+        F: FnMut(&mut CPU),
+    {
+        let ref opcodes: HashMap<u8, &'static opcodes::OpCode> = *opcodes::OPCODES_MAP;
         loop {
             let code = self.mem_read(self.program_counter);
             self.program_counter += 1;
             let program_counter_state = self.program_counter;
-            let opcode = OPCODES_MAP
-                .get(&code)
-                .expect(&format!("OpCode {:x} is not recognized", code));
+            let opcode = opcodes.get(&code).unwrap();
 
             match code {
                 /* Transfer Instructions */
@@ -633,6 +645,7 @@ impl CPU {
             if program_counter_state == self.program_counter {
                 self.program_counter += (opcode.len - 1) as u16
             };
+            callback(self);
         }
     }
 
@@ -1207,12 +1220,12 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load(vec![0x4A]);
         cpu.reset();
-        cpu.register_a = 0x40;
+        cpu.register_a = 0x3;
         cpu.status = 0x00;
         cpu.run();
 
-        assert_eq!(cpu.register_a, 0x20);
-        assert_eq!(cpu.status, 0x00);
+        assert_eq!(cpu.register_a, 0x01);
+        assert_eq!(cpu.status, 0x01);
     }
 
     #[test]
